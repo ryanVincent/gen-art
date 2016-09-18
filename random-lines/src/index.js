@@ -1,86 +1,41 @@
-var canvas =document.getElementById("canvas");
-var ctx = canvas.getContext("2d");
+const createVertex = require('./vertex.js');
+const { createPolyFromAdjacentPoly, createRandomPoly } = require('./poly.js');
 
-var lineCount = 400
-var minimumDistance = 3
-var h = canvas.height;
+const canvas =document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
+const lineCount = 400
+const minimumDistance = 5
+const h = canvas.height;
+const segments = 70;
+const color = 'black';
+const variance = 2;
+const seedVariance = 5;
 
-const createVertex = (x, y) => ({x,y});
-
-const lineProto = {
-    draw() {
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.start.x, this.start.y);
-        this.ctx.lineTo(this.end.x, this.end.y);
-        this.ctx.stroke();
-    }
-}
-
-createLine = (start, end, ctx) => {
-    return Object.create(lineProto, {
-        start: {
-            value: start
-        },
-        end: {
-            value: end
-        },
-        ctx: {
-            value: ctx
-        }
-    })
-}
-
-
-const polyProto = {
-    draw() {
-        this.lines.forEach(segement => segement.draw());
-    }
-}
-
-createPoly = (lines, ctx) => {
-    return Object.create(polyProto, {
-        lines: {
-            value: lines
-        },
-        ctx: {
-            value: ctx
-        }
-    });
-}
-
-
-getRandomPoly = (start, end, ctx) => {
-    var segs = 10;
-    var segLength = end.y / segs;
-    var lines = [];
-    let line;
-    for(let i = 0;i< segs;i++) {
-        let x = start.x;
-        let prevLine = line;
-        var direction = Math.floor(Math.random() * 2 - 1);
-        let lineStart;
-
-        if (prevLine) {
-            lineStart = Object.assign({}, prevLine.end);
-        }
-        else {
-            lineStart = createVertex(x, start.y + (segLength * i));
-        }
-        let lineEnd = createVertex(x  + (direction * Math.random() * 20), segLength * i + segLength);
-        line = createLine(lineStart, lineEnd, ctx);
-        lines.push(line);
-
-    }
-
-    return createPoly(lines, ctx);
-
-}
-
+let poly;
+let painting = {
+    contours: []
+};
 
 for (let i=0; i < lineCount; i++) {
-    let start = createVertex(i*minimumDistance, 0);
-    let end = createVertex(i*minimumDistance, h);
-    let poly = getRandomPoly(start, end, ctx);
-    poly.draw();
+    if (i === 0) {
+        let start = createVertex(i*minimumDistance, 0);
+        let end = createVertex(i*minimumDistance, h);
+        poly = createRandomPoly(start, end, segments, color, seedVariance, ctx);
+    } else {
+        poly = createPolyFromAdjacentPoly(poly, i, minimumDistance, color, variance, ctx);
+        console.log(poly);
+    }
+    painting.contours.push(poly);
 }
+
+painting.contours.forEach(contour => {
+    let startingIndex = Math.floor((contour.lines.length / 2) +  Math.random() * (contour.lines.length / 2)) - 1;
+
+    for (let i = startingIndex; i < contour.lines.length; i++) {
+        let line = contour.lines[i];
+        line.color = 'white';
+    }
+
+    contour.draw();
+});
