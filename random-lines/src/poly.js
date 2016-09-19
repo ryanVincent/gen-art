@@ -26,20 +26,16 @@ const createRandomPoly = (start, end, segs, color, variance, ctx) => {
     var segLength = end.y / segs;
     var lines = [];
     let line;
+    let prevLine;
     for(let i = 0;i< segs;i++) {
-        let x = start.x;
-        let prevLine = line;
-        var direction = Math.floor(Math.random() * 2 - 1);
-        let lineStart;
 
         if (prevLine) {
             lineStart = Object.assign({}, prevLine.end);
+        } else {
+            lineStart = createVertex(start.x, start.y);
         }
-        else {
-            lineStart = createVertex(x, start.y + (segLength * i));
-        }
-        let lineEnd = createVertex(x  + (direction * Math.random() * variance), segLength * i + segLength);
-        line = createLine(lineStart, lineEnd, color, ctx);
+        line = createRandomLineFromPoint(lineStart.x, lineStart.y, segLength, prevLine, variance, color, i, ctx);
+        prevLine = line;
         lines.push(line);
 
     }
@@ -47,23 +43,50 @@ const createRandomPoly = (start, end, segs, color, variance, ctx) => {
     return createPoly(lines, color, ctx);
 }
 
-const createPolyFromAdjacentPoly = (poly, i, minimumDistance, color, variance, ctx) => {
+const createRandomLineFromPoint = (startX, startY, segLength, prevLine, variance, color, i , ctx) => {
+    let x = startX;
+    var direction = Math.random() * 2 - 1;
+    let lineStart = createVertex(x, startY);
+    let lineEnd = createVertex(x  + (direction * Math.random() * variance), startY + segLength);
+    console.log((direction * Math.random() * variance));
+    return createLine(lineStart, lineEnd, color, ctx);
+}
 
-    return createPoly(poly.lines.reduce((newLines, line, i) => {
+const createPolyFromAdjacentPoly = (poly, i, minimumDistance, color, variance, seedVariance, maxSegs, ctx) => {
+    var segLength = 20;
+    let segs = maxSegs - (Math.random() * (maxSegs * 0.66));
+    // let segs = Math.random() * maxSegs;
+
+    let lines = [];
+    for (let i = 0; i < maxSegs; i++) {
+        let adjacentLine = poly.lines[i];
+        let previousLine = lines[i-1]
         let start;
         let dx = getDistance(minimumDistance);
+
+        if (i > segs) {
+            break;
+        }
+
+        if (!adjacentLine) {
+            lines.push(createRandomLineFromPoint(previousLine.end.x, previousLine.end.y, segLength, previousLine, seedVariance, color, i, ctx));
+            continue;
+        }
+
         if (i == 0) {
-            start = createVertex(line.start.x + dx, 0, ctx);
+            start = createVertex(adjacentLine.start.x + dx, 0, ctx);
+        } else {
+            start = createVertex(previousLine.end.x , previousLine.end.y, ctx);
         }
-        else {
-            start = createVertex(newLines[i-1].end.x , newLines[i-1].end.y, ctx);
-        }
-        let end = createVertex(line.end.x + getDistance(minimumDistance), line.end.y  + Math.random() * variance - (variance / 2), ctx);
+        let end = createVertex(adjacentLine.end.x + getDistance(minimumDistance), adjacentLine.end.y  + Math.random() * variance - (variance / 2), ctx);
         if (end.y <= start.y) {
             end.y = start.y + Math.random() * variance;
         }
-        return [...newLines, createLine(start, end, line.color, ctx)];
-    }, []), color, ctx)
+
+        lines.push(createLine(start, end, color, ctx));
+    }
+
+    return createPoly(lines, color, ctx);
 }
 
 module.exports = {

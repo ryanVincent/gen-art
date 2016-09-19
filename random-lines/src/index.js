@@ -5,9 +5,9 @@ const canvas =document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 const lineCount = 400
-const minimumDistance = 5
+const minimumDistance = 10
 const h = canvas.height;
-const segments = 70;
+const segments = 50;
 const color = 'black';
 const variance = 2;
 const seedVariance = 5;
@@ -23,19 +23,9 @@ for (let i=0; i < lineCount; i++) {
         let end = createVertex(i*minimumDistance, h);
         poly = createRandomPoly(start, end, segments, color, seedVariance, ctx);
     } else {
-        poly = createPolyFromAdjacentPoly(poly, i, minimumDistance, color, variance, ctx);
+        poly = createPolyFromAdjacentPoly(poly, i, minimumDistance, color, variance, seedVariance, segments, ctx);
         console.log(poly);
     }
     painting.contours.push(poly);
+    poly.draw();
 }
-
-painting.contours.forEach(contour => {
-    let startingIndex = Math.floor((contour.lines.length / 2) +  Math.random() * (contour.lines.length / 2)) - 1;
-
-    for (let i = startingIndex; i < contour.lines.length; i++) {
-        let line = contour.lines[i];
-        line.color = 'white';
-    }
-
-    contour.draw();
-});
